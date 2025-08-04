@@ -10,6 +10,7 @@ You will need Docker Desktop to deploy the app
 git clone <repository-url>
 cd dogfydiet
 npm i
+npm run build
 npm run start:dev
 ```
 
