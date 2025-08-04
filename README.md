@@ -7,7 +7,7 @@ TypeScript/Node.js microservice for managing deliveries across multiple shipping
 You will need Docker Desktop to deploy the app
 
 ```bash
-git clone <repository-url>
+git clone https://github.com/Oscar-Pallas-Isern/dogfy-oscar-pallas-isern.git
 cd dogfydiet
 npm i
 npm run build
@@ -22,12 +22,6 @@ API available at `http://localhost:3000`
 ```http
 POST /deliveries
 Content-Type: application/json
-
-{
-  "pickup": {"lat": 40.7128, "lng": -74.0060},
-  "dropoff": {"lat": 40.7589, "lng": -73.9851},
-  "description": "Test delivery"
-}
 ```
 
 ### Get Status
@@ -39,12 +33,6 @@ GET /deliveries/{id}/status
 ```http
 POST /webhooks/tls
 Content-Type: application/json
-
-{
-  "trackingId": "TLS987654321",
-  "status": "delivered",
-  "timestamp": "2025-08-04T14:45:00Z"
-}
 ```
 
 ## Scripts
