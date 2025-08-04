@@ -1,9 +1,11 @@
 import { FastifyInstance } from 'fastify';
 import DeliveryRepository from '../repositories/MongoDeliveryRepository';
 import { DeliveryStatus } from '../../domain/models/deliveryModel';
+import { DeliveryService } from '../../domain/services/deliveryService';
 
 export default async function webhookRoutes(fastify: FastifyInstance) {
   const deliveryRepoInstance = new DeliveryRepository();
+  const deliveryService = new DeliveryService(deliveryRepoInstance, {} as any); // Providers not needed for status validation
 
   fastify.post('/tls', async (request, reply) => {
     try {
@@ -48,15 +50,29 @@ export default async function webhookRoutes(fastify: FastifyInstance) {
         });
         return;
       }
+
+      // Validate status transition using domain service
+      if (!deliveryService.isStatusUpdateAllowed(delivery, status)) {
+        console.log(`❌ Invalid status transition for ${trackingId}: ${delivery.status} → ${status}`);
+        reply.status(400).send({ 
+          error: 'Invalid status transition',
+          currentStatus: delivery.status,
+          attemptedStatus: status,
+          allowedTransitions: deliveryService.canUpdateStatus(delivery.status, 'DELIVERED') ? ['DELIVERED', 'FAILED'] : []
+        });
+        return;
+      }
       
       await deliveryRepoInstance.updateStatus(delivery.id, status);
       console.log(`✅ TLS status updated for ${trackingId}: ${delivery.status} → ${status}`);
+      console.log(`📊 Status description: ${deliveryService.getStatusDescription(status)}`);
       
       reply.code(200).send({ 
         success: true,
         deliveryId: delivery.id,
         previousStatus: delivery.status,
         newStatus: status,
+        statusDescription: deliveryService.getStatusDescription(status),
         updatedAt: new Date()
       });
       

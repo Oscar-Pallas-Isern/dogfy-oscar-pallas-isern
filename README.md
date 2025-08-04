@@ -34,6 +34,9 @@ GET /deliveries/{id}/status
 POST /webhooks/tls
 Content-Type: application/json
 ```
+### NRW Cron
+To test the cron without wait 1 hour you can change the cron from '0 * * * *' to '* * * * *' in
+src/infrastructure/crons/NRWCron.ts line 10
 
 ## Scripts
 

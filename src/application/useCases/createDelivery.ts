@@ -2,18 +2,23 @@
 import { Delivery } from '../../domain/models/deliveryModel';
 import { DeliveryRepositoryPort } from '../../domain/ports/deliveryRepositoryPort';
 import { ProviderPort } from '../../domain/ports/providerPort';
+import { DeliveryService } from '../../domain/services/deliveryService';
 
 export default class CreateDelivery {
+  private deliveryService: DeliveryService;
+
   constructor(
     private repo: DeliveryRepositoryPort,
     private providers: Record<'NRW' | 'TLS', ProviderPort>
-  ) {}
+  ) {
+    this.deliveryService = new DeliveryService(repo, providers);
+  }
 
   public async execute(orderId: string) {
     console.log(`🚀 Creating delivery for order ${orderId}`);
     
-    // Provider selection logic - could be enhanced with more sophisticated routing
-    const providerName = this.selectProvider(orderId);
+    // Use domain service for provider selection
+    const providerName = this.deliveryService.selectOptimalProvider();
     const provider = this.providers[providerName];
     
     console.log(`📋 Selected provider: ${providerName}`);
@@ -22,8 +27,8 @@ export default class CreateDelivery {
       // Request label generation from selected provider
       const { labelUrl, trackingId } = await provider.generateLabel(orderId);
       
-      // Calculate estimated delivery (simple logic - could be enhanced)
-      const estimatedDelivery = this.calculateEstimatedDelivery(providerName);
+      // Use domain service for delivery estimation
+      const estimatedDelivery = this.deliveryService.calculateEstimatedDelivery(providerName);
       
       const delivery: Delivery = {
         id: crypto.randomUUID(),
@@ -42,6 +47,7 @@ export default class CreateDelivery {
       console.log(`✅ Delivery created successfully: ${delivery.id}`);
       console.log(`📦 Tracking ID: ${trackingId}`);
       console.log(`🏷️ Label URL: ${labelUrl}`);
+      console.log(`📊 Status: ${this.deliveryService.getStatusDescription(delivery.status)}`);
       
       return { 
         success: true,
@@ -61,34 +67,6 @@ export default class CreateDelivery {
       
       // Return structured error response
       throw new Error(`Label generation failed: ${error instanceof Error ? error.message : 'Unknown error'}`);
-    }
-  }
-
-  private selectProvider(orderId: string): 'NRW' | 'TLS' {
-    // Simple provider selection - could be enhanced with:
-    // - Geographic routing
-    // - Load balancing
-    // - Provider availability
-    // - Cost optimization
-    
-    // For now, use hash-based selection for consistency
-    const hash = orderId.split('').reduce((a, b) => a + b.charCodeAt(0), 0);
-    return hash % 2 === 0 ? 'NRW' : 'TLS';
-  }
-
-  private calculateEstimatedDelivery(provider: string): Date {
-    const now = new Date();
-    
-    // Provider-specific delivery estimates
-    switch (provider) {
-      case 'NRW':
-        // NRW: 1-2 business days
-        return new Date(now.getTime() + (24 + Math.random() * 24) * 60 * 60 * 1000);
-      case 'TLS':
-        // TLS: Same day to next day
-        return new Date(now.getTime() + (4 + Math.random() * 20) * 60 * 60 * 1000);
-      default:
-        return new Date(now.getTime() + 24 * 60 * 60 * 1000);
     }
   }
 }

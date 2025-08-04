@@ -3,6 +3,7 @@ import CreateDelivery from '../../application/useCases/createDelivery';
 import DeliveryRepository from '../../infrastructure/repositories/MongoDeliveryRepository';
 import { NRWProvider } from '../../infrastructure/providers/NWRProvider';
 import { TLSProvider } from '../../infrastructure/providers/TLSProvider';
+import { DeliveryService } from '../../domain/services/deliveryService';
 
 export default async function deliveryRoutes(fastify: FastifyInstance) {
     fastify.post('/', async (request, reply) => {
@@ -31,8 +32,6 @@ export default async function deliveryRoutes(fastify: FastifyInstance) {
                     height: number;
                 };
             };
-            
-            // Generate orderId if not provided (for backward compatibility)
             const orderId = body?.orderId || `order_${Date.now()}_${Math.floor(Math.random() * 1000)}`;
             
             console.log(`📨 Received delivery request for order: ${orderId}`);
@@ -94,12 +93,20 @@ export default async function deliveryRoutes(fastify: FastifyInstance) {
                 });
                 return;
             }
+
+            // Use domain service for enhanced status information
+            const providers = {
+                NRW: new NRWProvider(),
+                TLS: new TLSProvider()
+            };
+            const deliveryService = new DeliveryService(deliveryRepoInstance, providers);
             
             reply.send({ 
                 success: true,
                 data: {
                     id: delivery.id,
                     status: delivery.status,
+                    statusDescription: deliveryService.getStatusDescription(delivery.status),
                     orderId: delivery.orderId,
                     provider: delivery.provider,
                     trackingId: delivery.trackingId,
